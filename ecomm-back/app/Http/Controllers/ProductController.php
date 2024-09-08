@@ -10,7 +10,7 @@ class ProductController extends Controller
 {
     public function index()
     {
-        $products = Product::all();
+        $products = Product::orderBy('id', 'desc')->get();
         return response()->json($products);
     }
 
@@ -26,7 +26,7 @@ class ProductController extends Controller
 
         try {
             $data = $request->only(['name', 'price', 'quantity', 'description']);
-            $imagePath = $request->file('image')->store('products');
+            $imagePath = $request->file('image')->store('public');
             $data['image'] = $imagePath;
             $product = Product::create($data);
 
@@ -65,7 +65,7 @@ class ProductController extends Controller
                 Storage::delete($product->image);
 
                 // Store new image
-                $imagePath = $request->file('image')->store('products');
+                $imagePath = $request->file('image')->store('public');
                 $data['image'] = $imagePath;
             }
 

@@ -1,4 +1,4 @@
-import { useState, useEffect } from "react";
+import { useState } from "react";
 import axios from "axios";
 import {
   Button,
@@ -17,47 +17,54 @@ const UpdateProduct = () => {
   const { id } = useParams();
   const [formData, setFormData] = useState({
     name: "",
+    image: null,
     description: "",
     price: "",
     quantity: "",
   });
   const [errorMessage, setErrorMessage] = useState("");
-  const baseUrl = "http://localhost:8000/";
+  const [imagePreview, setImagePreview] = useState(null);
 
-  useEffect(() => {
-    const fetchProductData = async () => {
-      try {
-        const response = await axios.get(
-          `http://localhost:8000/api/products/${id}`
-        );
-        const { name, description, price, quantity } = response.data;
-        setFormData({
-          name,
-          description,
-          price,
-          quantity,
-        });
-      } catch (error) {
-        console.error("Failed to fetch product data:", error);
-      }
-    };
+  const handleChange = ({ target: { name, value, files } }) => {
+    if (name === "image") {
+      const selectedImage = files[0];
+      setFormData((prevData) => ({ ...prevData, [name]: selectedImage }));
 
-    fetchProductData();
-  }, [id, baseUrl]);
-
-  const handleChange = ({ target: { name, value } }) => {
-    setFormData((prevData) => ({ ...prevData, [name]: value }));
+      // Preview image
+      const reader = new FileReader();
+      reader.onloadend = () => {
+        setImagePreview(reader.result);
+      };
+      reader.readAsDataURL(selectedImage);
+    } else {
+      setFormData((prevData) => ({ ...prevData, [name]: value }));
+    }
   };
 
   const handleSubmit = async (e) => {
     e.preventDefault();
+    const productData = new FormData();
+    Object.keys(formData).forEach((key) => {
+      productData.append(key, formData[key]);
+    });
 
     try {
-      await axios.put(`http://localhost:8000/api/products/${id}`, formData);
-      setErrorMessage("Product updated successfully.");
+      await axios.put(`http://localhost:8000/api/products/${id}`, productData, {
+        headers: {
+          "Content-Type": "multipart/form-data",
+        },
+      });
+      setErrorMessage("Product added successfully.");
+      setFormData({
+        name: "",
+        image: null,
+        description: "",
+        price: "",
+        quantity: "",
+      });
+      setImagePreview(null);
     } catch (error) {
-      console.error("Failed to update product:", error);
-      setErrorMessage("Failed to update product.");
+      setErrorMessage(error.response.data.message);
     }
   };
 
@@ -68,7 +75,7 @@ const UpdateProduct = () => {
           <Col lg={8} xl={6}>
             <Card bg="dark" text="white" className="shadow-lg">
               <Card.Body>
-                <h2 className="text-center mb-4">Update Product</h2>
+                <h2 className="text-center mb-4">Add New Product</h2>
                 <Form onSubmit={handleSubmit}>
                   <FormGroup>
                     <FormLabel>Name</FormLabel>
@@ -79,7 +86,6 @@ const UpdateProduct = () => {
                       type="text"
                       placeholder="Enter name"
                       className="bg-dark text-white shadow-lg"
-                      required
                     />
                   </FormGroup>
                   <FormGroup>
@@ -91,8 +97,27 @@ const UpdateProduct = () => {
                       type="text"
                       placeholder="Enter description"
                       className="bg-dark text-white shadow-lg"
-                      required
                     />
+                  </FormGroup>
+                  <FormGroup>
+                    <FormLabel>Image</FormLabel>
+                    <FormControl
+                      name="image"
+                      onChange={handleChange}
+                      type="file"
+                      className="bg-dark text-white shadow-lg"
+                    />
+                    {imagePreview && (
+                      <img
+                        src={imagePreview}
+                        alt="Preview"
+                        className="img-fluid mt-2"
+                        style={{
+                          maxHeight: "200px",
+                          objectFit: "cover",
+                        }}
+                      />
+                    )}
                   </FormGroup>
                   <FormGroup>
                     <FormLabel>Price</FormLabel>
@@ -103,7 +128,6 @@ const UpdateProduct = () => {
                       type="number"
                       placeholder="Enter price"
                       className="bg-dark text-white shadow-lg"
-                      required
                     />
                   </FormGroup>
                   <FormGroup>
@@ -115,7 +139,6 @@ const UpdateProduct = () => {
                       type="number"
                       placeholder="Enter quantity"
                       className="bg-dark text-white shadow-lg"
-                      required
                     />
                   </FormGroup>
 
@@ -124,12 +147,12 @@ const UpdateProduct = () => {
                     type="submit"
                     className="w-100 mt-3"
                   >
-                    Update Product
+                    Add Product
                   </Button>
                   {errorMessage && (
                     <p
                       className={`${
-                        errorMessage === "Product updated successfully."
+                        errorMessage == "Product added successfully."
                           ? "text-success"
                           : "text-danger"
                       } mt-3 fw-bold`}
